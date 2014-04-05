@@ -1,0 +1,9 @@
+@import "addons.scss";
+@import "pubmedsearchengine.scss";
+
+/* This file prefixes all rules with the theme name to avoid causing conflicts with other themes. */
+/* The actual styles should be defined in pubmedsearchengine.scss */
+.pubmedsearchengine {
+  @include addons;
+  @include pubmedsearchengine;
+}
