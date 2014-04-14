@@ -15,6 +15,7 @@ public class PubMedSEPresenter {
     }
     
     public void search() {
+        view.getSearchText();
         model.search();
     }
     

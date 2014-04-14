@@ -6,11 +6,15 @@
 .pubmedsearchengine {
   @include addons;
   @include pubmedsearchengine;
+  
+    .v-label-title {
+	font-size: 50px;
+	line-height: normal;
+	color: white;
+	background-color: blue;
+	vertical-align: middle-text;
+}
 }
 
-.title {
-	color: white;
-	background: blue;
-	vertical-align: text-middle;
-}
+
 

@@ -38,32 +38,25 @@ public class PubMedSEView extends CustomComponent {
     public void init() {
         VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
-        HorizontalLayout hLabel = new HorizontalLayout();
         setCompositionRoot(vl);
         vl.setSpacing(true);
         vl.setMargin(true);
         hl.setMargin(true);
-      //  hLabel.setMargin(true);
         
         initFields();
       
         hl.addComponent(searchTF);
         hl.addComponent(searchBtn);
         
-        Label title = new Label("<font size = '20'>PubMed Search Engine</font>");
-        title.setContentMode(Label.CONTENT_XHTML);
+        Label title = new Label("PubMed Search Engine");
+        //title.setContentMode(Label.CONTENT_XHTML);
         title.setSizeUndefined();
       //  title.setWidth("100%");
        // title.setHeight("100%");
         title.setStyleName("title");
-        hLabel.setHeight("80pt");
-        hLabel.addComponent(title);
-     
+        title.setImmediate(true);
+        vl.addComponent(title);
 
-        hLabel.setComponentAlignment(title, Alignment.MIDDLE_CENTER);
-
-
-        vl.addComponent(hLabel);
         vl.addComponent(hl);
         vl.addComponent(results);
         vl.setWidth("100%");
@@ -82,6 +75,13 @@ public class PubMedSEView extends CustomComponent {
     
     private void initFields() {
         searchBtn = new Button("Search");
+        searchBtn.addClickListener(new ClickListener() {
+            
+            @Override
+            public void buttonClick(ClickEvent event) {
+                  presenter.search();                
+            }
+        });
         searchTF = new TextField();
         Collection<String> terms = new ArrayList<String>();
         for(int i = 0; i < 200; i++)
@@ -99,5 +99,9 @@ public class PubMedSEView extends CustomComponent {
         searchBtn.setWidth("20%");
         
 
+    }
+    
+    public String getSearchText() {
+        return searchTF.getValue();
     }
 }
