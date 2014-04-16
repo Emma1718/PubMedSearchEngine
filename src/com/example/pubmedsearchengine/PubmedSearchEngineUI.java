@@ -33,27 +33,7 @@ public class PubmedSearchEngineUI extends UI {
     protected void init(VaadinRequest request) {
 
         
-        try {
-            EUtilsServiceStub service = new EUtilsServiceStub();
-            // call NCBI ESearch utility
-            // NOTE: search term should be URL encoded
-            EUtilsServiceStub.ESearchRequest req = new EUtilsServiceStub.ESearchRequest();
-            req.setDb("pmc");
-            req.setTerm("stem+cells+AND+free+fulltext[filter]");
-            req.setRetMax("15");
-            EUtilsServiceStub.ESearchResult res = service.run_eSearch(req);
-            // results output
-            System.out
-                    .println("Original query: stem cells AND free fulltext[filter]");
-            System.out.println("Found ids: " + res.getCount());
-            System.out.print("First " + res.getRetMax() + " ids: ");
-            for (int i = 0; i < res.getIdList().getId().length; i++) {
-                System.out.print(res.getIdList().getId()[i] + " ");
-            }
-            System.out.println();
-        } catch (Exception e) {
-            System.out.println(e.toString());
-        }
+       
         
         PubMedSEView view = new PubMedSEView();
         PubMedSEModel model = new PubMedSEModel();
