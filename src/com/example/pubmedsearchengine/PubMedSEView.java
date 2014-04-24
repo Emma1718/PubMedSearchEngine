@@ -49,10 +49,7 @@ public class PubMedSEView extends CustomComponent {
         hl.addComponent(searchBtn);
         
         Label title = new Label("PubMed Search Engine");
-        //title.setContentMode(Label.CONTENT_XHTML);
         title.setSizeUndefined();
-      //  title.setWidth("100%");
-       // title.setHeight("100%");
         title.setStyleName("title");
         title.setImmediate(true);
         vl.addComponent(title);
@@ -86,17 +83,17 @@ public class PubMedSEView extends CustomComponent {
         Collection<String> terms = new ArrayList<String>();
         for(int i = 0; i < 200; i++)
             terms.add(String.valueOf(i));
-        results = new PagingComponent<String>(20, terms, new PagingComponentListener<String>() {
-
-            @Override
-            public void displayPage(ChangePageEvent event) {
-                
-            }
-        });
-        
         searchTF.setWidth("100%");
         searchTF.setHeight("100%");
         searchBtn.setWidth("20%");
+        
+        results = new PagingComponent(20, 5, terms, new PagingComponentListener<String>() {
+
+            @Override
+            public void displayPage(ChangePageEvent<String> event) {
+                
+            }
+        });
         
 
     }

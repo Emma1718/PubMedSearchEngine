@@ -16,6 +16,12 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
+import org.xml.sax.InputSource;
+
+import com.aliasi.corpus.ObjectHandler;
+import com.aliasi.lingmed.mesh.Mesh;
+import com.aliasi.lingmed.mesh.MeshParser;
+import com.aliasi.lingmed.mesh.MeshTerm;
 
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
 
@@ -23,56 +29,74 @@ public class PubMedSEModel {
 
     String STOPWORDS_PATH = "C:\\Users\\Paulina\\workspace\\PubMedSearchEngine\\src\\files\\stopwords.txt";
     public CharArraySet stopwordsSet = null;
-    
+
+    /*
+     * Main method of model
+     */
     public void search(String searchText) throws IOException {
-        String str = tokenizeStopStem(searchText);
-        System.out.println("Tokenized str: " + str);
+      ArrayList<String> str = tokenizeStopStem(searchText);
+        System.out.println("Tokenized str: " + str.toString());
+        //initMesh();
     }
 
+    /*
+     * Method reading English stopwords from file and add them into CharArraySet
+     */
     public CharArraySet initStopWordsSet() throws IOException {
         List<String> stopwords = new ArrayList<String>();
-        BufferedReader reader = new BufferedReader(new FileReader(STOPWORDS_PATH));
+        BufferedReader reader = new BufferedReader(new FileReader(
+                STOPWORDS_PATH));
 
         while (reader.ready()) {
-          String s = reader.readLine();
-          stopwords.add(s);
+            String s = reader.readLine();
+            stopwords.add(s);
         }
         reader.close();
-        CharArraySet stopwordsSet2 = new CharArraySet(Version.LUCENE_47, stopwords, true);
+        CharArraySet stopwordsSet2 = new CharArraySet(Version.LUCENE_47,
+                stopwords, true);
         return stopwordsSet2;
     }
-    
-    private String tokenizeStopStem(String input) throws IOException {
-        if(stopwordsSet == null)
+    /*
+     * Method which tokenize input, removes stopwords and stem
+     */
+    private ArrayList<String> tokenizeStopStem(String input) throws IOException {
+        if (stopwordsSet == null)
             stopwordsSet = initStopWordsSet();
         System.out.println("Input: " + input);
-        TokenStream tokenStream = new StandardTokenizer(Version.LUCENE_47, new StringReader(input));
-        tokenStream = new StopFilter(Version.LUCENE_47, tokenStream, stopwordsSet);
-        tokenStream = new PorterStemFilter(tokenStream);
- 
+        ArrayList<String> tokens = new ArrayList<String>();
+        int increment = 0;
+        TokenStream tokenStream = new StandardTokenizer(Version.LUCENE_47,
+                new StringReader(input));
+        tokenStream = new StopFilter(Version.LUCENE_47, tokenStream,
+                stopwordsSet); //removing stopwords
+        tokenStream = new PorterStemFilter(tokenStream); //stemming
+
         StringBuilder sb = new StringBuilder();
-        OffsetAttribute offsetAttribute = tokenStream.addAttribute(OffsetAttribute.class);
-        CharTermAttribute charTermAttr = tokenStream.getAttribute(CharTermAttribute.class);
+        OffsetAttribute offsetAttribute = tokenStream
+                .addAttribute(OffsetAttribute.class);
+        CharTermAttribute charTermAttr = tokenStream
+                .getAttribute(CharTermAttribute.class);
         tokenStream.reset();
-        try{
+        try {
             while (tokenStream.incrementToken()) {
-                if (sb.length() > 0) {
-                    sb.append(" ");
-                }
-                sb.append(charTermAttr.toString());
+              //  if (sb.length() > 0) {
+                //    sb.append(" ");
+               // }
+                //sb.append(charTermAttr.toString());
+               tokens.add(charTermAttr.toString());
+                
             }
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             System.out.println(e.getMessage());
         }
-        return sb.toString();
-}
-    
+        return tokens;
+    }
+
+   
     private void searchInPubMed() {
         try {
             EUtilsServiceStub service = new EUtilsServiceStub();
-            // call NCBI ESearch utility
-            // NOTE: search term should be URL encoded
+            
             EUtilsServiceStub.ESearchRequest req = new EUtilsServiceStub.ESearchRequest();
             req.setDb("pmc");
             req.setTerm("stem+cells+AND+free+fulltext[filter]");
@@ -89,6 +113,25 @@ public class PubMedSEModel {
             System.out.println();
         } catch (Exception e) {
             System.out.println(e.toString());
+        }
+    }
+    
+    private void initMesh() {
+        MeshParser parser = new MeshParser();
+        try {
+            ObjectHandler<Mesh> obHandler =  new ObjectHandler<Mesh>() {
+
+                @Override
+                public void handle(Mesh arg0) {
+                    // TODO Auto-generated method stub
+                    
+                }
+            };
+            parser.setHandler(obHandler);
+            parser.parse("C:\\Users\\Paulina\\mesh.xml");
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 }

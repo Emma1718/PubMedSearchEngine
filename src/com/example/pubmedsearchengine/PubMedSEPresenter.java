@@ -10,7 +10,6 @@ public class PubMedSEPresenter {
     public PubMedSEPresenter(PubMedSEView view, PubMedSEModel model) throws IOException {
         setView(view);
         setModel(model);
-       // model.initStopWordsSet();
     }
     public void setView(PubMedSEView view) {
         this.view = view;
