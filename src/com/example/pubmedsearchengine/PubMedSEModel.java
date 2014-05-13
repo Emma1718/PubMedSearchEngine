@@ -1,12 +1,19 @@
 package com.example.pubmedsearchengine;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilter;
@@ -17,11 +24,29 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
+import com.aliasi.corpus.Handler;
 import com.aliasi.corpus.ObjectHandler;
+import com.aliasi.corpus.XMLParser;
 import com.aliasi.lingmed.mesh.Mesh;
 import com.aliasi.lingmed.mesh.MeshParser;
 import com.aliasi.lingmed.mesh.MeshTerm;
+
+import java.io.File;
+import java.io.FileInputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
 
@@ -34,9 +59,9 @@ public class PubMedSEModel {
      * Main method of model
      */
     public void search(String searchText) throws IOException {
-      ArrayList<String> str = tokenizeStopStem(searchText);
+        ArrayList<String> str = tokenizeStopStem(searchText);
         System.out.println("Tokenized str: " + str.toString());
-        //initMesh();
+        initMesh();
     }
 
     /*
@@ -56,6 +81,7 @@ public class PubMedSEModel {
                 stopwords, true);
         return stopwordsSet2;
     }
+
     /*
      * Method which tokenize input, removes stopwords and stem
      */
@@ -68,8 +94,8 @@ public class PubMedSEModel {
         TokenStream tokenStream = new StandardTokenizer(Version.LUCENE_47,
                 new StringReader(input));
         tokenStream = new StopFilter(Version.LUCENE_47, tokenStream,
-                stopwordsSet); //removing stopwords
-        tokenStream = new PorterStemFilter(tokenStream); //stemming
+                stopwordsSet); // removing stopwords
+        tokenStream = new PorterStemFilter(tokenStream); // stemming
 
         StringBuilder sb = new StringBuilder();
         OffsetAttribute offsetAttribute = tokenStream
@@ -79,12 +105,8 @@ public class PubMedSEModel {
         tokenStream.reset();
         try {
             while (tokenStream.incrementToken()) {
-              //  if (sb.length() > 0) {
-                //    sb.append(" ");
-               // }
-                //sb.append(charTermAttr.toString());
-               tokens.add(charTermAttr.toString());
-                
+                tokens.add(charTermAttr.toString());
+
             }
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -92,11 +114,10 @@ public class PubMedSEModel {
         return tokens;
     }
 
-   
     private void searchInPubMed() {
         try {
             EUtilsServiceStub service = new EUtilsServiceStub();
-            
+
             EUtilsServiceStub.ESearchRequest req = new EUtilsServiceStub.ESearchRequest();
             req.setDb("pmc");
             req.setTerm("stem+cells+AND+free+fulltext[filter]");
@@ -110,28 +131,57 @@ public class PubMedSEModel {
             for (int i = 0; i < res.getIdList().getId().length; i++) {
                 System.out.print(res.getIdList().getId()[i] + " ");
             }
-            System.out.println();
         } catch (Exception e) {
             System.out.println(e.toString());
         }
     }
-    
-    private void initMesh() {
-        MeshParser parser = new MeshParser();
-        try {
-            ObjectHandler<Mesh> obHandler =  new ObjectHandler<Mesh>() {
 
-                @Override
-                public void handle(Mesh arg0) {
-                    // TODO Auto-generated method stub
-                    
-                }
-            };
-            parser.setHandler(obHandler);
-            parser.parse("C:\\Users\\Paulina\\mesh.xml");
+    private void initMesh() {
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setValidating(false);
+        DocumentBuilder db;
+        Document doc = null;
+        try {
+            db = dbf.newDocumentBuilder();
+            doc = db.parse(new FileInputStream(new File(
+                    "C:\\Users\\Paulina\\mesh.xml")));
+        } catch (ParserConfigurationException e) {
+            System.out.println(e.toString());
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            System.out.println(e.toString());
+            e.printStackTrace();
+        } catch (SAXException e) {
+            System.out.println(e.toString());
+            e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            System.out.println(e.toString());
             e.printStackTrace();
         }
+        if (doc != null) {
+            System.out.println("Doc null");
+        } else System.out.println("Not null");
+        XPathFactory factory = XPathFactory.newInstance();
+        XPath xpath = factory.newXPath();
+
+        String expression;
+        NodeList nodeList = null;
+
+//        expression = "DescriptorName/String[text()='Calcimycin']";
+//        try {
+//            nodeList = (NodeList) xpath.evaluate(expression, doc,
+//                    XPathConstants.NODE);
+//        } catch (XPathExpressionException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
+//        if (nodeList != null) {
+//            for (int i = 0; i < nodeList.getLength(); i++) {
+//                System.out.print(nodeList.item(i).getNodeName() + " ");
+//            }
+//        } else
+//            System.out.println("Brak node'a");
+
     }
 }
