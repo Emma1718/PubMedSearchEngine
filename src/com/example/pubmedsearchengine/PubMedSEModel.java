@@ -15,6 +15,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.axis2.transport.http.CommonsHTTPTransportSender;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.en.PorterStemFilter;
@@ -23,6 +24,14 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.SolrInputDocument;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -50,6 +59,13 @@ import org.w3c.dom.NodeList;
 
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
 public class PubMedSEModel {
 
     String STOPWORDS_PATH = "C:\\Users\\Paulina\\workspace\\PubMedSearchEngine\\src\\files\\stopwords.txt";
@@ -61,7 +77,10 @@ public class PubMedSEModel {
     public void search(String searchText) throws IOException {
         ArrayList<String> str = tokenizeStopStem(searchText);
         System.out.println("Tokenized str: " + str.toString());
-        initMesh();
+        ArrayList<String> foundInMesh = new ArrayList<String>();
+        for(String s: str) {
+            foundInMesh.addAll(searchInMesh(s));
+        }
     }
 
     /*
@@ -136,52 +155,58 @@ public class PubMedSEModel {
         }
     }
 
-    private void initMesh() {
+    public void initMesh() {
 
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setValidating(false);
-        DocumentBuilder db;
-        Document doc = null;
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        SAXParser saxParser;
+        DefaultHandler handler = new CustomHandler();
+
         try {
-            db = dbf.newDocumentBuilder();
-            doc = db.parse(new FileInputStream(new File(
-                    "C:\\Users\\Paulina\\mesh.xml")));
+            saxParser = factory.newSAXParser();
+            saxParser.parse("C:\\Users\\Paulina\\mesh.xml", handler);
+
         } catch (ParserConfigurationException e) {
-            System.out.println(e.toString());
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            System.out.println(e.toString());
+            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (SAXException e) {
-            System.out.println(e.toString());
+            // TODO Auto-generated catch block
             e.printStackTrace();
+
         } catch (IOException e) {
-            System.out.println(e.toString());
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        if (doc != null) {
-            System.out.println("Doc null");
-        } else System.out.println("Not null");
-        XPathFactory factory = XPathFactory.newInstance();
-        XPath xpath = factory.newXPath();
-
-        String expression;
-        NodeList nodeList = null;
-
-//        expression = "DescriptorName/String[text()='Calcimycin']";
-//        try {
-//            nodeList = (NodeList) xpath.evaluate(expression, doc,
-//                    XPathConstants.NODE);
-//        } catch (XPathExpressionException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        }
-//        if (nodeList != null) {
-//            for (int i = 0; i < nodeList.getLength(); i++) {
-//                System.out.print(nodeList.item(i).getNodeName() + " ");
-//            }
-//        } else
-//            System.out.println("Brak node'a");
+        System.out.println("Parsing finish");
 
     }
+    
+    private ArrayList<String> searchInMesh(String word) {
+        ArrayList<String> result = new ArrayList<String>();
+        HttpSolrServer solr = new HttpSolrServer("http://localhost:8983/solr");
+
+        String strQ = "/.*" + word + ".*/";
+        SolrQuery query = new SolrQuery();
+        query.setQuery(strQ);
+        query.addFilterQuery("cat:descriptorRecord");
+        query.setFields("id","name");
+        query.setStart(0);    
+        query.set("defType", "edismax");
+
+        QueryResponse response;
+        try {
+            response = solr.query(query);
+            SolrDocumentList results = response.getResults();
+            System.out.println("query: " + query.toString());
+
+            for (int i = 0; i < results.size(); ++i) {
+              System.out.println(results.get(i).getFieldValue("name"));
+              result.add((String) results.get(i).getFieldValue("name"));
+            }
+        } catch (SolrServerException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return result;
+    }
+
 }
