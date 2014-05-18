@@ -1,70 +1,34 @@
 package com.example.pubmedsearchengine;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.axis2.transport.http.CommonsHTTPTransportSender;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.SolrInputDocument;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import com.aliasi.corpus.Handler;
-import com.aliasi.corpus.ObjectHandler;
-import com.aliasi.corpus.XMLParser;
-import com.aliasi.lingmed.mesh.Mesh;
-import com.aliasi.lingmed.mesh.MeshParser;
-import com.aliasi.lingmed.mesh.MeshTerm;
-
-import java.io.File;
-import java.io.FileInputStream;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
-import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
 public class PubMedSEModel {
 
@@ -78,8 +42,8 @@ public class PubMedSEModel {
         ArrayList<String> str = tokenizeStopStem(searchText);
         System.out.println("Tokenized str: " + str.toString());
         ArrayList<String> foundInMesh = new ArrayList<String>();
-        for(String s: str) {
-            foundInMesh.addAll(searchInMesh(s));
+        for (String s : str) {
+             foundInMesh.addAll(searchInMesh(s));
         }
     }
 
@@ -107,18 +71,13 @@ public class PubMedSEModel {
     private ArrayList<String> tokenizeStopStem(String input) throws IOException {
         if (stopwordsSet == null)
             stopwordsSet = initStopWordsSet();
-        System.out.println("Input: " + input);
         ArrayList<String> tokens = new ArrayList<String>();
-        int increment = 0;
         TokenStream tokenStream = new StandardTokenizer(Version.LUCENE_47,
                 new StringReader(input));
         tokenStream = new StopFilter(Version.LUCENE_47, tokenStream,
                 stopwordsSet); // removing stopwords
         tokenStream = new PorterStemFilter(tokenStream); // stemming
 
-        StringBuilder sb = new StringBuilder();
-        OffsetAttribute offsetAttribute = tokenStream
-                .addAttribute(OffsetAttribute.class);
         CharTermAttribute charTermAttr = tokenStream
                 .getAttribute(CharTermAttribute.class);
         tokenStream.reset();
@@ -179,18 +138,19 @@ public class PubMedSEModel {
         System.out.println("Parsing finish");
 
     }
-    
+
     private ArrayList<String> searchInMesh(String word) {
         ArrayList<String> result = new ArrayList<String>();
         HttpSolrServer solr = new HttpSolrServer("http://localhost:8983/solr");
 
         String strQ = "/.*" + word + ".*/";
         SolrQuery query = new SolrQuery();
+       // query.se
         query.setQuery(strQ);
         query.addFilterQuery("cat:descriptorRecord");
-        query.setFields("id","name");
-        query.setStart(0);    
-        query.set("defType", "edismax");
+        query.setFields("id", "name");
+        query.setStart(0);
+       // query.set("defType", "edismax");
 
         QueryResponse response;
         try {
@@ -199,8 +159,8 @@ public class PubMedSEModel {
             System.out.println("query: " + query.toString());
 
             for (int i = 0; i < results.size(); ++i) {
-              System.out.println(results.get(i).getFieldValue("name"));
-              result.add((String) results.get(i).getFieldValue("name"));
+                System.out.println(results.get(i).getFieldValue("name"));
+                result.add((String) results.get(i).getFieldValue("name"));
             }
         } catch (SolrServerException e) {
             // TODO Auto-generated catch block

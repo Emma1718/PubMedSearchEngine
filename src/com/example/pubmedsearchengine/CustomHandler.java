@@ -91,12 +91,6 @@ public class CustomHandler extends DefaultHandler {
             str = false;
         } else if (qName.equals(DESCRIPTOR_UI)) {
             dUI = false;
-        } else if (qName.equals(TERM_LIST)) {
-            // termList = false;
-            // if (tmpTerms.length() > 0) {
-            // doc.addField("manu", tmpTerms.toString());
-            // tmpTerms.setLength(0);
-            // }
         } else if (qName.equals(TREE_NUM)) {
             treeN = false;
         }
@@ -114,12 +108,6 @@ public class CustomHandler extends DefaultHandler {
                     treeNums.append(", " + new String(ch, start, length));
                 else
                     treeNums.append(new String(ch, start, length));
-
-            } else if (term && str) {
-                // if (tmpTerms.length() > 0)
-                // tmpTerms.append(", " + new String(ch, start, length));
-                // else
-                // tmpTerms.append(new String(ch, start, length));
 
             }
             doc.addField("cat", "descriptorRecord");

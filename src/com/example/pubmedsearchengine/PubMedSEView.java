@@ -61,13 +61,7 @@ public class PubMedSEView extends CustomComponent {
       
         
         
-        searchBtn.addClickListener(new ClickListener() {
-            
-            @Override
-            public void buttonClick(ClickEvent event) {
-                presenter.search();
-            }
-        });
+      
     }
     
     private void initFields() {
