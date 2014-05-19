@@ -1,7 +1,10 @@
 package com.example.pubmedsearchengine;
 
+import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub.PubmedArticleType;
+
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.vaadin.pagingcomponent.PagingComponent;
 import org.vaadin.pagingcomponent.PagingComponent.ChangePageEvent;
@@ -92,6 +95,11 @@ public class PubMedSEView extends CustomComponent {
 
     }
     
+    public void setFoundArticles(List<PubmedArticleType> articles) {
+        for(PubmedArticleType p: articles) {
+            System.out.println(p.getPubmedData());
+        }
+    }
     public String getSearchText() {
         return searchTF.getValue();
     }

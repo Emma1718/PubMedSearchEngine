@@ -22,7 +22,8 @@ public class PubMedSEPresenter {
     
     public void search() {
         try {
-            model.search(view.getSearchText());
+            view.setFoundArticles(model.search(view.getSearchText()));
+         
         } catch (IOException e) {
             e.printStackTrace();
         }
