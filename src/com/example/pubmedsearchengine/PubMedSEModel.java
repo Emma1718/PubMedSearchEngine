@@ -25,6 +25,7 @@ import org.apache.solr.common.SolrDocumentList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import gov.nih.nlm.ncbi.www.soap.eutils.EFetchGeneServiceStub.IdListType;
 import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub;
 import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub.PubmedArticleType;
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
@@ -46,15 +47,14 @@ public class PubMedSEModel {
     /*
      * Main method of model
      */
-    public List<PubmedArticleType> search(String searchText) throws IOException {
+    public List<PubMedDoc> search(String searchText) throws IOException {
         ArrayList<String> str = tokenizeStopStem(searchText);
-        System.out.println("Tokenized str: " + str.toString());
         ArrayList<String> foundInMesh = new ArrayList<String>();
         for (String s : str) {
             foundInMesh.addAll(searchInMesh(s));
         }
         str.addAll(foundInMesh);
-        List<PubmedArticleType> result = searchInPubMed(str);
+        List<PubMedDoc> result = searchInPubMed(str);
         return result;
     }
 
@@ -102,9 +102,7 @@ public class PubMedSEModel {
         }
         return tokens;
     }
-        
-        
-        
+
     public void initMesh() {
 
         SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -147,10 +145,8 @@ public class PubMedSEModel {
         try {
             response = solr.query(query);
             SolrDocumentList results = response.getResults();
-            System.out.println("query: " + query.toString());
 
             for (int i = 0; i < results.size(); ++i) {
-                System.out.println(results.get(i).getFieldValue("name"));
                 result.add((String) results.get(i).getFieldValue("name"));
             }
         } catch (SolrServerException e) {
@@ -165,77 +161,79 @@ public class PubMedSEModel {
         service2 = new EFetchPubmedServiceStub();
     }
 
-    private List<PubmedArticleType> searchInPubMed(List<String> searchList)
+    private List<PubMedDoc> searchInPubMed(List<String> searchList)
             throws AxisFault {
-        System.out.println("Searching in pubmed....");
 
-        List<PubmedArticleType> resultList = new ArrayList<PubmedArticleType>();
+        List<PubMedDoc> resultList = new ArrayList<PubMedDoc>();
         if (service == null && service2 == null) {
             initServices();
         }
-        
+
         EUtilsServiceStub.ESearchRequest req = new EUtilsServiceStub.ESearchRequest();
 
-            for (String s : searchList) {
-                try {
-                    String query = createQuery(s);
-                    req.setTerm(query);
-                    req.setUsehistory("y");// important!
-                    EUtilsServiceStub.ESearchResult res = service.run_eSearch(req);
-                    int count = new Integer(res.getCount());
-                    System.out.println("Found " + count + " results for query " +  query);
-                    // results output
-                    String webEnv = res.getWebEnv();
-                    String query_key = res.getQueryKey();
-                    System.out.println("WebEnv: " + webEnv + "\nQueryKey: " + query_key);
+        for (String s : searchList) {
+            try {
+                String query = createQuery(s);
+                req.setTerm(query);
+                req.setUsehistory("y");// important!
+                req.setDb("pubmed");
+                EUtilsServiceStub.ESearchResult res = service.run_eSearch(req);
+                int count = new Integer(res.getCount());
 
-       
-                    List<PubmedArticleType> articles = new ArrayList<EFetchPubmedServiceStub.PubmedArticleType>();
-                    int fetchesPerRuns = Math.min(2000, 100);
-                    int runs = (int) Math.ceil(count / new Double(fetchesPerRuns));
-                    int start = 0;
-                    for (int i = 0; i < runs; i++) {
-                        System.out.println("Fetching results from id " + start + " to id " +  (start + fetchesPerRuns));
-                        EFetchPubmedServiceStub.EFetchRequest req2 = new EFetchPubmedServiceStub.EFetchRequest();
-                        req2.setWebEnv(webEnv);
-                        req2.setQuery_key(query_key);
-                        req2.setRetstart(start + "");
-                        req2.setRetmax(fetchesPerRuns + "");
+                // results output
 
-                        EFetchPubmedServiceStub.EFetchResult res2 = service2
-                                .run_eFetch(req2);
-                        for (int j = 0; j < res2.getPubmedArticleSet()
-                                .getPubmedArticleSetChoice().length; j++) {
-
-                            PubmedArticleType art = res2.getPubmedArticleSet()
-                                    .getPubmedArticleSetChoice()[j].getPubmedArticle();
-                            if (art != null) {
-                                System.out.println("found ID " +  art.getMedlineCitation()
-                                        .getPMID() + " title " + art.getMedlineCitation().getArticle()
-                                        .getArticleTitle());
-                                articles.add(art);
-                                if (articles.size() == 500) { // enough!
-                                    return articles;
-                                }
-                            }
-                        }
-                        start += fetchesPerRuns;
-                    }
-                } catch (Exception e) {
-                    System.out.println(e.toString());
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < res.getIdList().getId().length; i++) {
+                    sb.append(res.getIdList().getId()[i]);
+                    sb.append(",");
                 }
+                sb.deleteCharAt(sb.length() - 1);
+
+                EUtilsServiceStub.ESummaryRequest req2 = new EUtilsServiceStub.ESummaryRequest();
+                String q = sb.toString().replace(" ", ",");
+                req2.setId(q);
+                req2.setDb("pubmed");
+                EUtilsServiceStub.ESummaryResult res2 = service
+                        .run_eSummary(req2);
+
+                for (int i = 0; i < res2.getDocSum().length; i++) {
+                    String title = res2.getDocSum()[i].getItem()[5]
+                            .getItemContent();
+                    String id = res2.getDocSum()[i].getId();
+                    
+                    resultList.add(new PubMedDoc(title, id));
+                }
+
+            } catch (Exception e) {
+                System.out.println(e.toString());
             }
-        
+        }
+
         return resultList;
     }
 
     private String createQuery(String str) {
         String res = str.replace(" ", "+");
-        System.out.println("Create query: " + res);
         return res;
     }
 
+    public class PubMedDoc {
+        String title;
+        String link;
+        private final String BASE_LINK = "http://www.ncbi.nlm.nih.gov/pubmed/";
 
+        public PubMedDoc(String title, String id) {
+            this.title = title;
+            link =  BASE_LINK + id;
+        }
 
-  
+        public String getTitle() {
+            return title;
+
+        }
+
+        public String getLink() {
+            return link;
+        }
+    }
 }

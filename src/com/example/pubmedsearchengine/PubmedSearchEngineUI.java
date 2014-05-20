@@ -1,17 +1,16 @@
 package com.example.pubmedsearchengine;
 
-
 import java.io.IOException;
 
-
 import javax.servlet.annotation.WebServlet;
+
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ui.UIServerRpc;
 import com.vaadin.ui.UI;
-
-
 
 @SuppressWarnings("serial")
 @Theme("pubmedsearchengine")
@@ -25,7 +24,7 @@ public class PubmedSearchEngineUI extends UI {
 
     @Override
     protected void init(VaadinRequest request) {
- 
+        System.out.println("Tworze od nowa");
         PubMedSEView view = new PubMedSEView();
         PubMedSEModel model = new PubMedSEModel();
         PubMedSEPresenter presenter = null;
@@ -40,9 +39,7 @@ public class PubmedSearchEngineUI extends UI {
         // presenter.setView(view);
         // presenter.setModel(model);
         setContent(view);
-   //     model.initMesh();
-
-     
+        // model.initMesh();
     }
 
 }
