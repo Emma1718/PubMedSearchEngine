@@ -18,6 +18,7 @@ import org.vaadin.pagingcomponent.listener.impl.SimplePagingComponentListener;
 import com.example.pubmedsearchengine.PubMedSEModel.PubMedDoc;
 import com.sun.tools.xjc.Language;
 import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -72,7 +73,6 @@ public class PubMedSEView extends CustomComponent {
         vl.addComponent(hl);
         
         if (VaadinSession.getCurrent().getAttribute(ACTUAL_RESULT) != null) {
-            System.out.print("Nie null");
             setFoundArticles((List<PubMedDoc>) VaadinSession.getCurrent().getAttribute(ACTUAL_RESULT));
         }
         vl.setWidth("100%");
@@ -143,7 +143,7 @@ public class PubMedSEView extends CustomComponent {
     public void setFoundArticles(List<PubMedDoc> articles) {
         final VerticalLayout mainLayout = new VerticalLayout();
         final VerticalLayout itemsArea = new VerticalLayout();
-        pagingComponent = new PagingComponent<PubMedDoc>(30, 10, articles,
+        pagingComponent = new PagingComponent<PubMedDoc>(15, 10, articles,
                 styler,
                 new SimplePagingComponentListener<PubMedDoc>(itemsArea) {
 
@@ -151,11 +151,15 @@ public class PubMedSEView extends CustomComponent {
                     protected Component displayItem(int index, PubMedDoc item) {
                         // This method allows to create a Component to display
                         // an item fetched
-                        return new Label("<a href = " + item.getLink() + ">"
-                                + item.getTitle() + "</a>", ContentMode.HTML);
+                        HorizontalLayout l = new HorizontalLayout();
+                        l.setMargin(new MarginInfo(true,false,false,false));
+                        l.addComponent(new Label("<a href = " + item.getLink() + ">"
+                                + item.getTitle() + "</a>", ContentMode.HTML));
+                        return l;
                     }
 
                 });
+        mainLayout.addComponent(new Label("<h2>Searching Results: </h2>",ContentMode.HTML));
         mainLayout.addComponent(itemsArea);
         mainLayout.addComponent(pagingComponent);
        

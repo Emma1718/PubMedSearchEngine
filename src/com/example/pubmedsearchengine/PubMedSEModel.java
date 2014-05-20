@@ -5,7 +5,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -25,13 +29,7 @@ import org.apache.solr.common.SolrDocumentList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import gov.nih.nlm.ncbi.www.soap.eutils.EFetchGeneServiceStub.IdListType;
 import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub;
-import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub.PubmedArticleType;
-import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
-import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceCallbackHandler;
-import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub;
-import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceCallbackHandler;
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
 
 import javax.xml.parsers.SAXParser;
@@ -163,7 +161,8 @@ public class PubMedSEModel {
 
     private List<PubMedDoc> searchInPubMed(List<String> searchList)
             throws AxisFault {
-
+        System.out.println("Searching in pubmed...");
+        HashMap<PubMedDoc, Integer> results = new HashMap<PubMedDoc, Integer>();
         List<PubMedDoc> resultList = new ArrayList<PubMedDoc>();
         if (service == null && service2 == null) {
             initServices();
@@ -200,7 +199,12 @@ public class PubMedSEModel {
                     String title = res2.getDocSum()[i].getItem()[5]
                             .getItemContent();
                     String id = res2.getDocSum()[i].getId();
-                    
+                    PubMedDoc pmd = new PubMedDoc(title, id);
+                    Integer actual = 1;
+                    if (results.containsKey(pmd)) {
+                        actual = results.get(pmd) + 1;
+                    }
+                    results.put(pmd, actual);
                     resultList.add(new PubMedDoc(title, id));
                 }
 
@@ -208,7 +212,6 @@ public class PubMedSEModel {
                 System.out.println(e.toString());
             }
         }
-
         return resultList;
     }
 
@@ -224,7 +227,7 @@ public class PubMedSEModel {
 
         public PubMedDoc(String title, String id) {
             this.title = title;
-            link =  BASE_LINK + id;
+            link = BASE_LINK + id;
         }
 
         public String getTitle() {
