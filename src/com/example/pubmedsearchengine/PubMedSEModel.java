@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.SortedSet;
@@ -46,14 +48,17 @@ public class PubMedSEModel {
      * Main method of model
      */
     public List<PubMedDoc> search(String searchText) throws IOException {
-        ArrayList<String> str = tokenizeStopStem(searchText);
-        ArrayList<String> foundInMesh = new ArrayList<String>();
-        for (String s : str) {
-            foundInMesh.addAll(searchInMesh(s));
+        if (!searchText.equals("")) {
+            ArrayList<String> str = tokenizeStopStem(searchText);
+            ArrayList<String> foundInMesh = new ArrayList<String>();
+            for (String s : str) {
+                foundInMesh.addAll(searchInMesh(s));
+            }
+            str.addAll(foundInMesh);
+            List<PubMedDoc> result = searchInPubMed(str);
+            return result;
         }
-        str.addAll(foundInMesh);
-        List<PubMedDoc> result = searchInPubMed(str);
-        return result;
+        return null;
     }
 
     /*
@@ -167,9 +172,9 @@ public class PubMedSEModel {
         if (service == null && service2 == null) {
             initServices();
         }
-
+        String q = "";
         EUtilsServiceStub.ESearchRequest req = new EUtilsServiceStub.ESearchRequest();
-
+        StringBuffer sb = new StringBuffer();
         for (String s : searchList) {
             try {
                 String query = createQuery(s);
@@ -180,38 +185,60 @@ public class PubMedSEModel {
                 int count = new Integer(res.getCount());
 
                 // results output
+                //
+                // for (int i = 0; i < res.getIdList().getId().length; i++) {
+                for (int i = 0; i < 10; i++) {
 
-                StringBuffer sb = new StringBuffer();
-                for (int i = 0; i < res.getIdList().getId().length; i++) {
                     sb.append(res.getIdList().getId()[i]);
                     sb.append(",");
                 }
-                sb.deleteCharAt(sb.length() - 1);
+                // sb.deleteCharAt(sb.length() - 1);
 
-                EUtilsServiceStub.ESummaryRequest req2 = new EUtilsServiceStub.ESummaryRequest();
-                String q = sb.toString().replace(" ", ",");
-                req2.setId(q);
-                req2.setDb("pubmed");
-                EUtilsServiceStub.ESummaryResult res2 = service
-                        .run_eSummary(req2);
-
-                for (int i = 0; i < res2.getDocSum().length; i++) {
-                    String title = res2.getDocSum()[i].getItem()[5]
-                            .getItemContent();
-                    String id = res2.getDocSum()[i].getId();
-                    PubMedDoc pmd = new PubMedDoc(title, id);
-                    Integer actual = 1;
-                    if (results.containsKey(pmd)) {
-                        actual = results.get(pmd) + 1;
-                    }
-                    results.put(pmd, actual);
-                    resultList.add(new PubMedDoc(title, id));
-                }
+                // sb.toString().replace(" ", ",");
 
             } catch (Exception e) {
                 System.out.println(e.toString());
             }
         }
+
+        EUtilsServiceStub.ESummaryRequest req2 = new EUtilsServiceStub.ESummaryRequest();
+        sb.deleteCharAt(sb.length() - 1);
+        q = sb.toString().replace(" ", ",");
+
+        req2.setId(q);
+        req2.setDb("pubmed");
+        EUtilsServiceStub.ESummaryResult res2 = null;
+        try {
+            res2 = service.run_eSummary(req2);
+        } catch (RemoteException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        for (int i = 0; i < res2.getDocSum().length; i++) {
+            String title = res2.getDocSum()[i].getItem()[5].getItemContent();
+            String id = res2.getDocSum()[i].getId();
+            PubMedDoc pmd = new PubMedDoc(title, id);
+
+            if (resultList.contains(pmd)) {
+                resultList.get(resultList.indexOf(pmd)).increaseCounter();
+            } else {
+                resultList.add(pmd);
+            }
+            
+        }
+        Collections.sort(resultList, new Comparator<PubMedDoc>() {
+
+            @Override
+            public int compare(PubMedDoc o1, PubMedDoc o2) {
+                if (o1.getCounter() > o2.getCounter()) {
+                    return -1;
+                } else if (o1.getCounter() < o2.getCounter()) {
+                    return 1;
+                } else
+                    return 0;
+
+            }
+        });
         return resultList;
     }
 
@@ -221,13 +248,16 @@ public class PubMedSEModel {
     }
 
     public class PubMedDoc {
-        String title;
-        String link;
-        private final String BASE_LINK = "http://www.ncbi.nlm.nih.gov/pubmed/";
+        private String title;
+        private String link;
+        private String id;
+        private static final String BASE_LINK = "http://www.ncbi.nlm.nih.gov/pubmed/";
+        private int counter;
 
         public PubMedDoc(String title, String id) {
             this.title = title;
-            link = BASE_LINK + id;
+            this.id = id;
+            counter = 1;
         }
 
         public String getTitle() {
@@ -238,5 +268,35 @@ public class PubMedSEModel {
         public String getLink() {
             return link;
         }
+
+        public String generateLink() {
+            return BASE_LINK + id;
+        }
+
+        public void increaseCounter() {
+            counter++;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public int getCounter() {
+            return counter;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj != null && obj instanceof PubMedDoc) {
+                PubMedDoc pmd = (PubMedDoc) obj;
+                if (pmd.getId().equals(this.id)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        
+
     }
 }

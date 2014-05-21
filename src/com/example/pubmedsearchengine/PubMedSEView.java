@@ -17,6 +17,7 @@ import org.vaadin.pagingcomponent.listener.impl.SimplePagingComponentListener;
 
 import com.example.pubmedsearchengine.PubMedSEModel.PubMedDoc;
 import com.sun.tools.xjc.Language;
+import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.shared.ui.label.ContentMode;
@@ -39,8 +40,8 @@ public class PubMedSEView extends CustomComponent {
     private StyleCustomizer styler;
     private VerticalLayout vl;
     private PagingComponent<PubMedDoc> pagingComponent;
+    private VerticalLayout pagingLayout;
     private final static String ACTUAL_RESULT = "actualResult";
-    
 
     public PubMedSEView() {
         init();
@@ -69,11 +70,11 @@ public class PubMedSEView extends CustomComponent {
         title.setStyleName("title");
         title.setImmediate(true);
         vl.addComponent(title);
-
         vl.addComponent(hl);
-        
+        vl.addComponent(pagingLayout);
         if (VaadinSession.getCurrent().getAttribute(ACTUAL_RESULT) != null) {
-            setFoundArticles((List<PubMedDoc>) VaadinSession.getCurrent().getAttribute(ACTUAL_RESULT));
+            setFoundArticles((List<PubMedDoc>) VaadinSession.getCurrent()
+                    .getAttribute(ACTUAL_RESULT));
         }
         vl.setWidth("100%");
         hl.setWidth("100%");
@@ -81,6 +82,7 @@ public class PubMedSEView extends CustomComponent {
     }
 
     private void initFields() {
+        pagingLayout = new VerticalLayout();
         searchBtn = new Button("Search");
         searchBtn.addClickListener(new ClickListener() {
 
@@ -89,6 +91,7 @@ public class PubMedSEView extends CustomComponent {
                 presenter.search();
             }
         });
+        searchBtn.setClickShortcut(KeyCode.ENTER);
         searchTF = new TextField();
         Collection<String> terms = new ArrayList<String>();
         for (int i = 0; i < 200; i++)
@@ -109,7 +112,7 @@ public class PubMedSEView extends CustomComponent {
             @Override
             public void styleButtonPageCurrentPage(ButtonPageNavigator button,
                     int pageNumber) {
-                button.setPage(pageNumber, "[" + pageNumber + "]"); 
+                button.setPage(pageNumber, "[" + pageNumber + "]");
                 button.addStyleName("styleRed");
                 button.focus();
             }
@@ -141,31 +144,40 @@ public class PubMedSEView extends CustomComponent {
     }
 
     public void setFoundArticles(List<PubMedDoc> articles) {
-        final VerticalLayout mainLayout = new VerticalLayout();
-        final VerticalLayout itemsArea = new VerticalLayout();
-        pagingComponent = new PagingComponent<PubMedDoc>(15, 10, articles,
-                styler,
-                new SimplePagingComponentListener<PubMedDoc>(itemsArea) {
+        if (articles != null) {
+            final VerticalLayout itemsArea = new VerticalLayout();
+            pagingComponent = new PagingComponent<PubMedDoc>(15, 10, articles,
+                    styler, new SimplePagingComponentListener<PubMedDoc>(
+                            itemsArea) {
 
-                    @Override
-                    protected Component displayItem(int index, PubMedDoc item) {
-                        // This method allows to create a Component to display
-                        // an item fetched
-                        HorizontalLayout l = new HorizontalLayout();
-                        l.setMargin(new MarginInfo(true,false,false,false));
-                        l.addComponent(new Label("<a href = " + item.getLink() + ">"
-                                + item.getTitle() + "</a>", ContentMode.HTML));
-                        return l;
-                    }
+                        @Override
+                        protected Component displayItem(int index,
+                                PubMedDoc item) {
+                            // This method allows to create a Component to
+                            // display
+                            // an item fetched
+                            HorizontalLayout l = new HorizontalLayout();
+                            l.setMargin(new MarginInfo(true, false, false,
+                                    false));
+                            l.addComponent(new Label("<a href = "
+                                    + item.generateLink() + ">"
+                                    + item.getTitle() + "</a>",
+                                    ContentMode.HTML));
+                            return l;
+                        }
 
-                });
-        mainLayout.addComponent(new Label("<h2>Searching Results: </h2>",ContentMode.HTML));
-        mainLayout.addComponent(itemsArea);
-        mainLayout.addComponent(pagingComponent);
-       
-        VaadinSession.getCurrent().setAttribute(ACTUAL_RESULT, articles);
-        vl.addComponent(mainLayout);
+                    });
+            if (pagingLayout.getComponentCount() > 0) {
+                pagingLayout.removeAllComponents();
+            }
+            pagingLayout.addComponent(new Label("<h2>Searching Results: </h2>",
+                    ContentMode.HTML));
+            pagingLayout.addComponent(itemsArea);
+            pagingLayout.addComponent(pagingComponent);
 
+            VaadinSession.getCurrent().setAttribute(ACTUAL_RESULT, articles);
+            vl.addComponent(pagingLayout);
+        }
     }
 
     public String getSearchText() {
