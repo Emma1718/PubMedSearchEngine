@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -30,6 +31,8 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
+
+import com.vaadin.server.VaadinSession;
 
 import gov.nih.nlm.ncbi.www.soap.eutils.EFetchPubmedServiceStub;
 import gov.nih.nlm.ncbi.www.soap.eutils.EUtilsServiceStub;
@@ -106,7 +109,7 @@ public class PubMedSEModel {
         return tokens;
     }
 
-    public void initMesh() {
+   public void initMesh() {
 
         SAXParserFactory factory = SAXParserFactory.newInstance();
         SAXParser saxParser;
@@ -142,7 +145,7 @@ public class PubMedSEModel {
         query.addFilterQuery("cat:descriptorRecord");
         query.setFields("id", "name");
         query.setStart(0);
-        // query.set("defType", "edismax");
+        query.setRows(20);
 
         QueryResponse response;
         try {
@@ -167,7 +170,6 @@ public class PubMedSEModel {
     private List<PubMedDoc> searchInPubMed(List<String> searchList)
             throws AxisFault {
         System.out.println("Searching in pubmed...");
-        HashMap<PubMedDoc, Integer> results = new HashMap<PubMedDoc, Integer>();
         List<PubMedDoc> resultList = new ArrayList<PubMedDoc>();
         if (service == null && service2 == null) {
             initServices();
@@ -177,6 +179,7 @@ public class PubMedSEModel {
         StringBuffer sb = new StringBuffer();
         for (String s : searchList) {
             try {
+
                 String query = createQuery(s);
                 req.setTerm(query);
                 req.setUsehistory("y");// important!
@@ -186,12 +189,16 @@ public class PubMedSEModel {
 
                 // results output
                 //
-                // for (int i = 0; i < res.getIdList().getId().length; i++) {
-                for (int i = 0; i < 10; i++) {
+                // for (int i = 0; i < res.getIdList().getId().length; i++)
+                // {
+                StringBuffer tmpSb = new StringBuffer();
 
+                for (int i = 0; i < Math.min(10, count); i++) {
                     sb.append(res.getIdList().getId()[i]);
                     sb.append(",");
+
                 }
+
                 // sb.deleteCharAt(sb.length() - 1);
 
                 // sb.toString().replace(" ", ",");
@@ -224,7 +231,7 @@ public class PubMedSEModel {
             } else {
                 resultList.add(pmd);
             }
-            
+
         }
         Collections.sort(resultList, new Comparator<PubMedDoc>() {
 
@@ -244,6 +251,7 @@ public class PubMedSEModel {
 
     private String createQuery(String str) {
         String res = str.replace(" ", "+");
+        res = res + "*";
         return res;
     }
 
@@ -277,6 +285,10 @@ public class PubMedSEModel {
             counter++;
         }
 
+        public void normCounter() {
+            counter = 1;
+        }
+
         public String getId() {
             return id;
         }
@@ -295,8 +307,6 @@ public class PubMedSEModel {
             }
             return false;
         }
-
-        
 
     }
 }
